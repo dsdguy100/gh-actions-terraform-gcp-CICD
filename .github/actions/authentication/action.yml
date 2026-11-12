@@ -1,9 +1,12 @@
 name: Authenticate to Azure
-description: Authenticate to Azure using GitHub OpenID Connect federation.
+description: Authenticate to Azure using a service principal client secret.
 
 inputs:
   client_id:
     description: Microsoft Entra application (client) ID.
+    required: true
+  client_secret:
+    description: Microsoft Entra application client secret.
     required: true
   tenant_id:
     description: Microsoft Entra tenant ID.
@@ -15,9 +18,10 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Sign in with OpenID Connect
+    - name: Sign in with client secret
       uses: azure/login@v2
       with:
         client-id: ${{ inputs.client_id }}
+        client-secret: ${{ inputs.client_secret }}
         tenant-id: ${{ inputs.tenant_id }}
         subscription-id: ${{ inputs.subscription_id }}

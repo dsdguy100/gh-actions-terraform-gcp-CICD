@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   terraform:
@@ -15,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     env:
-      ARM_USE_OIDC: "true"
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       TF_STATE_RESOURCE_GROUP: ${{ vars.TF_STATE_RESOURCE_GROUP }}
@@ -36,7 +35,7 @@ jobs:
       - name: Check required configuration
         shell: bash
         run: |
-          for name in ARM_CLIENT_ID ARM_TENANT_ID ARM_SUBSCRIPTION_ID TF_STATE_RESOURCE_GROUP TF_STATE_STORAGE_ACCOUNT TF_STATE_CONTAINER TF_STATE_KEY AKS_RESOURCE_GROUP AKS_LOCATION AKS_CLUSTER_NAME AKS_NODE_COUNT AKS_NODE_VM_SIZE; do
+          for name in ARM_CLIENT_ID ARM_CLIENT_SECRET ARM_TENANT_ID ARM_SUBSCRIPTION_ID TF_STATE_RESOURCE_GROUP TF_STATE_STORAGE_ACCOUNT TF_STATE_CONTAINER TF_STATE_KEY AKS_RESOURCE_GROUP AKS_LOCATION AKS_CLUSTER_NAME AKS_NODE_COUNT AKS_NODE_VM_SIZE; do
             if [[ -z "${!name}" ]]; then
               echo "::error::Set the $name repository variable."
               exit 1
@@ -47,6 +46,7 @@ jobs:
         uses: ./.github/actions/authentication
         with:
           client_id: ${{ env.ARM_CLIENT_ID }}
+          client_secret: ${{ env.ARM_CLIENT_SECRET }}
           tenant_id: ${{ env.ARM_TENANT_ID }}
           subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
 
@@ -62,7 +62,6 @@ jobs:
         working-directory: infrastructure
         run: |
           terraform init -input=false \
-            -backend-config="use_oidc=true" \
             -backend-config="use_azuread_auth=true" \
             -backend-config="client_id=$ARM_CLIENT_ID" \
             -backend-config="tenant_id=$ARM_TENANT_ID" \
