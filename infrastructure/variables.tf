@@ -1,20 +1,26 @@
-variable "project_id" {
-  description = "Google Cloud project that owns the buckets and service accounts."
+variable "resource_group_name" {
+  description = "Azure resource group for the AKS cluster."
   type        = string
 }
 
 variable "location" {
-  description = "Cloud Storage bucket location, such as US or us-central1."
+  description = "Azure region in which to create the AKS cluster."
   type        = string
 }
 
-variable "bucket_name" {
-  description = "Globally unique names for the application storage buckets."
+variable "cluster_name" {
+  description = "Name of the Azure Kubernetes Service cluster."
   type        = string
-
 }
 
-variable "GKE_machine_type" {
-  description = "Machine type that determines the compute power of the GKE cluster."
+variable "node_count" {
+  description = "Number of nodes in the AKS system node pool."
+  type        = number
+  default     = 1
+}
+
+variable "node_vm_size" {
+  description = "Azure VM size for the AKS system node pool."
   type        = string
+  default     = "Standard_D2s_v5"
 }

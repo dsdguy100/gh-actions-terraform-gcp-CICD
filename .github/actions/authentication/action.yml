@@ -1,24 +1,23 @@
-name: Authenticate to Google Cloud
-description: Authenticate to Google Cloud using Workload Identity Federation.
+name: Authenticate to Azure
+description: Authenticate to Azure using GitHub OpenID Connect federation.
 
 inputs:
-  project_id:
-    description: Google Cloud project ID.
+  client_id:
+    description: Microsoft Entra application (client) ID.
     required: true
-  service_account:
-    description: Google Cloud service account email to impersonate.
+  tenant_id:
+    description: Microsoft Entra tenant ID.
     required: true
-  workload_identity_provider:
-    description: Full resource name of the Workload Identity Provider.
+  subscription_id:
+    description: Azure subscription ID.
     required: true
 
 runs:
   using: composite
   steps:
-    - name: Authenticate with Workload Identity Federation
-      uses: google-github-actions/auth@v2
+    - name: Sign in with OpenID Connect
+      uses: azure/login@v2
       with:
-        project_id: ${{ inputs.project_id }}
-        service_account: ${{ inputs.service_account }}
-        workload_identity_provider: ${{ inputs.workload_identity_provider }}
-        create_credentials_file: true
+        client-id: ${{ inputs.client_id }}
+        tenant-id: ${{ inputs.tenant_id }}
+        subscription-id: ${{ inputs.subscription_id }}

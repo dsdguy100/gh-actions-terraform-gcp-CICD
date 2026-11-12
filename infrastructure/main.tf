@@ -1,45 +1,39 @@
 terraform {
   required_version = ">= 1.5.0"
 
-  backend "gcs" {
-    prefix = "terraform/state"
+  backend "azurerm" {
   }
 
   required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "~> 6.0"
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.0"
     }
   }
 }
 
-provider "google" {
-  project = var.project_id
-  region  = var.region
+provider "azurerm" {
+  features {}
 }
 
-variable "project_id" {
-  type = string
-}
-
-variable "region" {
-  type    = string
-  default = "us-central1"
-}
-
-resource "google_container_cluster" "minimal_standard" {
-  name                = "minimal-standard-cluster"
+resource "azurerm_kubernetes_cluster" "main" {
+  name                = var.cluster_name
+  resource_group_name = var.resource_group_name
   location            = var.location
-  deletion_protection = false
-}
 
-resource "google_container_node_pool" "primary_nodes" {
-  name       = "minimal-node-pool"
-  location   = var.location
-  cluster    = google_container_cluster.minimal_standard.name
-  node_count = 1
+  dns_prefix = var.cluster_name
 
-  node_config {
-    machine_type = var.GKE_machine_type
+  default_node_pool {
+    name       = "system"
+    node_count = var.node_count
+    vm_size    = var.node_vm_size
+  }
+
+  node_provisioning_profile {
+    mode = "Manual"
+  }
+
+  identity {
+    type = "SystemAssigned"
   }
 }

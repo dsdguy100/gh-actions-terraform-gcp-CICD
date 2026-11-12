@@ -1,4 +1,4 @@
-name: Terraform
+name: Azure Terraform
 
 on:
   push:
@@ -15,12 +15,19 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     env:
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      GCP_REGION: ${{ vars.GCP_REGION }}
-      GCP_LOCATION: ${{ vars.GCP_LOCATION }}
-      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-      GKE_MACHINE_TYPE: ${{ vars.GKE_MACHINE_TYPE }}
-      TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      TF_STATE_RESOURCE_GROUP: ${{ vars.TF_STATE_RESOURCE_GROUP }}
+      TF_STATE_STORAGE_ACCOUNT: ${{ vars.TF_STATE_STORAGE_ACCOUNT }}
+      TF_STATE_CONTAINER: ${{ vars.TF_STATE_CONTAINER }}
+      TF_STATE_KEY: ${{ vars.TF_STATE_KEY }}
+      AKS_RESOURCE_GROUP: ${{ vars.AKS_RESOURCE_GROUP }}
+      AKS_LOCATION: ${{ vars.AKS_LOCATION }}
+      AKS_CLUSTER_NAME: ${{ vars.AKS_CLUSTER_NAME }}
+      AKS_NODE_COUNT: ${{ vars.AKS_NODE_COUNT }}
+      AKS_NODE_VM_SIZE: ${{ vars.AKS_NODE_VM_SIZE }}
 
     steps:
       - name: Check out repository
@@ -29,18 +36,19 @@ jobs:
       - name: Check required configuration
         shell: bash
         run: |
-          for name in GCP_PROJECT_ID GCP_REGION GCP_LOCATION GCP_WORKLOAD_IDENTITY_PROVIDER GKE_MACHINE_TYPE TF_STATE_BUCKET; do
+          for name in ARM_CLIENT_ID ARM_TENANT_ID ARM_SUBSCRIPTION_ID TF_STATE_RESOURCE_GROUP TF_STATE_STORAGE_ACCOUNT TF_STATE_CONTAINER TF_STATE_KEY AKS_RESOURCE_GROUP AKS_LOCATION AKS_CLUSTER_NAME AKS_NODE_COUNT AKS_NODE_VM_SIZE; do
             if [[ -z "${!name}" ]]; then
               echo "::error::Set the $name repository variable."
               exit 1
             fi
           done
 
-      - name: Authenticate to Google Cloud
+      - name: Authenticate to Azure
         uses: ./.github/actions/authentication
         with:
-          project_id: ${{ env.GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          client_id: ${{ env.ARM_CLIENT_ID }}
+          tenant_id: ${{ env.ARM_TENANT_ID }}
+          subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
@@ -52,7 +60,17 @@ jobs:
 
       - name: Initialize Terraform
         working-directory: infrastructure
-        run: terraform init -input=false -backend-config="bucket=$TF_STATE_BUCKET"
+        run: |
+          terraform init -input=false \
+            -backend-config="use_oidc=true" \
+            -backend-config="use_azuread_auth=true" \
+            -backend-config="client_id=$ARM_CLIENT_ID" \
+            -backend-config="tenant_id=$ARM_TENANT_ID" \
+            -backend-config="subscription_id=$ARM_SUBSCRIPTION_ID" \
+            -backend-config="resource_group_name=$TF_STATE_RESOURCE_GROUP" \
+            -backend-config="storage_account_name=$TF_STATE_STORAGE_ACCOUNT" \
+            -backend-config="container_name=$TF_STATE_CONTAINER" \
+            -backend-config="key=$TF_STATE_KEY"
 
       - name: Validate Terraform
         working-directory: infrastructure
@@ -62,11 +80,11 @@ jobs:
         working-directory: infrastructure
         run: |
           terraform plan -no-color -input=false -out=tfplan \
-            -var="bucket_name=$TF_STATE_BUCKET" \
-            -var="project_id=$GCP_PROJECT_ID" \
-            -var="region=$GCP_REGION" \
-            -var="location=$GCP_LOCATION" \
-            -var="GKE_machine_type=$GKE_MACHINE_TYPE"
+            -var="resource_group_name=$AKS_RESOURCE_GROUP" \
+            -var="location=$AKS_LOCATION" \
+            -var="cluster_name=$AKS_CLUSTER_NAME" \
+            -var="node_count=$AKS_NODE_COUNT" \
+            -var="node_vm_size=$AKS_NODE_VM_SIZE"
 
       - name: Apply Terraform changes
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
