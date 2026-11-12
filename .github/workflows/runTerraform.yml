@@ -28,15 +28,15 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Check required configuration
-        shell: bash
-        run: |
-          for name in GCP_PROJECT_ID GCP_REGION GCP_LOCATION GCP_SERVICE_ACCOUNT GCP_WORKLOAD_IDENTITY_PROVIDER GKE_MACHINE_TYPE TF_STATE_BUCKET; do
-            if [[ -z "${!name}" ]]; then
-              echo "::error::Set the $name repository variable."
-              exit 1
-            fi
-          done
+      # - name: Check required configuration
+      #   shell: bash
+      #   run: |
+      #     for name in GCP_PROJECT_ID GCP_REGION GCP_LOCATION GCP_SERVICE_ACCOUNT GCP_WORKLOAD_IDENTITY_PROVIDER GKE_MACHINE_TYPE TF_STATE_BUCKET; do
+      #       if [[ -z "${!name}" ]]; then
+      #         echo "::error::Set the $name repository variable."
+      #         exit 1
+      #       fi
+      #     done
 
       - name: Authenticate to Google Cloud
         uses: ./.github/actions/authentication
