@@ -1,0 +1,77 @@
+name: Terraform
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    env:
+      GCP_BUCKET_NAME: ${{ vars.GCP_BUCKET_NAME }}
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION }}
+      GCP_LOCATION: ${{ vars.GCP_LOCATION }}
+      GCP_SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GKE_MACHINE_TYPE: ${{ vars.GKE_MACHINE_TYPE }}
+      TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check required configuration
+        shell: bash
+        run: |
+          for name in GCP_BUCKET_NAME GCP_PROJECT_ID GCP_REGION GCP_LOCATION GCP_SERVICE_ACCOUNT GCP_WORKLOAD_IDENTITY_PROVIDER GKE_MACHINE_TYPE TF_STATE_BUCKET; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Set the $name repository variable."
+              exit 1
+            fi
+          done
+
+      - name: Authenticate to Google Cloud
+        uses: ./.github/actions/authentication
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.0
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check infrastructure/main.tf infrastructure/variables.tf
+
+      - name: Initialize Terraform
+        working-directory: infrastructure
+        run: terraform init -input=false -backend-config="bucket=$TF_STATE_BUCKET"
+
+      - name: Validate Terraform
+        working-directory: infrastructure
+        run: terraform validate -no-color
+
+      - name: Plan Terraform changes
+        working-directory: infrastructure
+        run: |
+          terraform plan -no-color -input=false -out=tfplan \
+            -var="bucket_name=$GCP_BUCKET_NAME" \
+            -var="project_id=$GCP_PROJECT_ID" \
+            -var="region=$GCP_REGION" \
+            -var="location=$GCP_LOCATION" \
+            -var="GKE_machine_type=$GKE_MACHINE_TYPE"
+
+      - name: Apply Terraform changes
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: infrastructure
+        run: terraform apply -auto-approve -input=false tfplan

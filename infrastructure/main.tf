@@ -2,7 +2,6 @@ terraform {
   required_version = ">= 1.5.0"
 
   backend "gcs" {
-    bucket = var.bucket
     prefix = "terraform/state"
   }
 
@@ -29,9 +28,9 @@ variable "region" {
 }
 
 resource "google_container_cluster" "minimal_standard" {
-  name     = "minimal-standard-cluster"
-  location = var.location
-  deletion_protection      = false
+  name                = "minimal-standard-cluster"
+  location            = var.location
+  deletion_protection = false
 }
 
 resource "google_container_node_pool" "primary_nodes" {

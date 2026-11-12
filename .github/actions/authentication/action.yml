@@ -1,0 +1,24 @@
+name: Authenticate to Google Cloud
+description: Authenticate to Google Cloud using Workload Identity Federation.
+
+inputs:
+  project_id:
+    description: Google Cloud project ID.
+    required: true
+  service_account:
+    description: Google Cloud service account email to impersonate.
+    required: true
+  workload_identity_provider:
+    description: Full resource name of the Workload Identity Provider.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Authenticate with Workload Identity Federation
+      uses: google-github-actions/auth@v2
+      with:
+        project_id: ${{ inputs.project_id }}
+        service_account: ${{ inputs.service_account }}
+        workload_identity_provider: ${{ inputs.workload_identity_provider }}
+        create_credentials_file: true
