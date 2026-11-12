@@ -15,12 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     env:
-      GCP_BUCKET_NAME: ${{ vars.GCP_BUCKET_NAME }}
-      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       GCP_REGION: ${{ vars.GCP_REGION }}
       GCP_LOCATION: ${{ vars.GCP_LOCATION }}
-      GCP_SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
-      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       GKE_MACHINE_TYPE: ${{ vars.GKE_MACHINE_TYPE }}
       TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
 
@@ -28,21 +26,20 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      # - name: Check required configuration
-      #   shell: bash
-      #   run: |
-      #     for name in GCP_PROJECT_ID GCP_REGION GCP_LOCATION GCP_SERVICE_ACCOUNT GCP_WORKLOAD_IDENTITY_PROVIDER GKE_MACHINE_TYPE TF_STATE_BUCKET; do
-      #       if [[ -z "${!name}" ]]; then
-      #         echo "::error::Set the $name repository variable."
-      #         exit 1
-      #       fi
-      #     done
+      - name: Check required configuration
+        shell: bash
+        run: |
+          for name in GCP_PROJECT_ID GCP_REGION GCP_LOCATION GCP_WORKLOAD_IDENTITY_PROVIDER GKE_MACHINE_TYPE TF_STATE_BUCKET; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Set the $name repository variable."
+              exit 1
+            fi
+          done
 
       - name: Authenticate to Google Cloud
         uses: ./.github/actions/authentication
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
-          # service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
           workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
 
       - name: Set up Terraform
