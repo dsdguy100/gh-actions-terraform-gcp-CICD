@@ -31,7 +31,7 @@ jobs:
       - name: Check required configuration
         shell: bash
         run: |
-          for name in GCP_BUCKET_NAME GCP_PROJECT_ID GCP_REGION GCP_LOCATION GCP_SERVICE_ACCOUNT GCP_WORKLOAD_IDENTITY_PROVIDER GKE_MACHINE_TYPE TF_STATE_BUCKET; do
+          for name in GCP_PROJECT_ID GCP_REGION GCP_LOCATION GCP_SERVICE_ACCOUNT GCP_WORKLOAD_IDENTITY_PROVIDER GKE_MACHINE_TYPE TF_STATE_BUCKET; do
             if [[ -z "${!name}" ]]; then
               echo "::error::Set the $name repository variable."
               exit 1
@@ -65,7 +65,7 @@ jobs:
         working-directory: infrastructure
         run: |
           terraform plan -no-color -input=false -out=tfplan \
-            -var="bucket_name=$GCP_BUCKET_NAME" \
+            -var="bucket_name=$TF_STATE_BUCKET" \
             -var="project_id=$GCP_PROJECT_ID" \
             -var="region=$GCP_REGION" \
             -var="location=$GCP_LOCATION" \
