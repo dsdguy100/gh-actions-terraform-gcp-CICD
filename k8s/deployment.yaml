@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blank-website
+  labels:
+    app: blank-website
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blank-website
+  template:
+    metadata:
+      labels:
+        app: blank-website
+    spec:
+      containers:
+        - name: blank-website
+          # Replace with the image URI pushed to Artifact Registry.
+          image: us-central1-docker.pkg.dev/PROJECT_ID/REPOSITORY/blank-website:latest
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
