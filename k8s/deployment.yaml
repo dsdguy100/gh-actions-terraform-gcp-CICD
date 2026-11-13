@@ -14,10 +14,28 @@ spec:
       labels:
         app: blank-website
     spec:
+      imagePullSecrets:
+        - name: acr-pull
       containers:
         - name: blank-website
-          image: "accountregistryserviceasdkdkas12366.azurecr.io/blank-website:latest"
+          image: "__ACR_LOGIN_SERVER__/blank-website:__IMAGE_TAG__"
           ports:
             - name: http
               containerPort: 80
               protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blank-website
+  labels:
+    app: blank-website
+spec:
+  type: LoadBalancer
+  selector:
+    app: blank-website
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

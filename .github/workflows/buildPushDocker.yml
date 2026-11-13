@@ -22,6 +22,9 @@ jobs:
       ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       ACR_NAME: ${{ vars.ACR_NAME }}
+      AKS_RESOURCE_GROUP: ${{ vars.TF_STATE_RESOURCE_GROUP }}
+      AKS_CLUSTER_NAME: ${{ vars.AKS_CLUSTER_NAME }}
+      IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
 
     steps:
       - name: Check out repository
@@ -32,7 +35,7 @@ jobs:
       - name: Check required configuration
         shell: bash
         run: |
-          for name in ARM_CLIENT_ID ARM_CLIENT_SECRET ARM_TENANT_ID ARM_SUBSCRIPTION_ID ACR_NAME; do
+          for name in ARM_CLIENT_ID ARM_CLIENT_SECRET ARM_TENANT_ID ARM_SUBSCRIPTION_ID ACR_NAME AKS_RESOURCE_GROUP AKS_CLUSTER_NAME; do
             if [[ -z "${!name}" ]]; then
               echo "::error::Set the $name repository secret or variable."
               exit 1
@@ -47,15 +50,59 @@ jobs:
           tenant_id: ${{ env.ARM_TENANT_ID }}
           subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
 
+      - name: Enable ACR admin credentials
+        run: az acr update --name "$ACR_NAME" --admin-enabled true
+
       - name: Build and push image to Azure Container Registry
         uses: azure/cli@v2
         env:
           ACR_NAME: ${{ env.ACR_NAME }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
         with:
           azcliversion: latest
           inlineScript: |
             az acr build \
               --registry "$ACR_NAME" \
-              --image "blank-website:${GITHUB_SHA}" \
+              --image "blank-website:${IMAGE_TAG}" \
               --image "blank-website:latest" \
               .
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group "$AKS_RESOURCE_GROUP" \
+            --name "$AKS_CLUSTER_NAME" \
+            --admin \
+            --overwrite-existing
+          kubectl wait --for=condition=Ready nodes --all --timeout=5m
+          kubectl get nodes
+
+      - name: Create ACR pull secret
+        shell: bash
+        run: |
+          ACR_LOGIN_SERVER=$(az acr show --name "$ACR_NAME" --query loginServer --output tsv)
+          ACR_USERNAME=$(az acr credential show --name "$ACR_NAME" --query username --output tsv)
+          ACR_PASSWORD=$(az acr credential show --name "$ACR_NAME" --query 'passwords[0].value' --output tsv)
+          echo "::add-mask::$ACR_PASSWORD"
+          kubectl create secret docker-registry acr-pull \
+            --docker-server="$ACR_LOGIN_SERVER" \
+            --docker-username="$ACR_USERNAME" \
+            --docker-password="$ACR_PASSWORD" \
+            --dry-run=client \
+            --output=yaml | kubectl apply -f -
+          unset ACR_PASSWORD
+
+      - name: Deploy image to AKS
+        shell: bash
+        run: |
+          ACR_LOGIN_SERVER=$(az acr show --name "$ACR_NAME" --query loginServer --output tsv)
+          sed \
+            -e "s|__ACR_LOGIN_SERVER__|$ACR_LOGIN_SERVER|g" \
+            -e "s|__IMAGE_TAG__|$IMAGE_TAG|g" \
+            k8s/deployment.yaml | kubectl apply -f -
+          kubectl rollout status deployment/blank-website --timeout=5m
+          kubectl get pods --selector=app=blank-website
+          kubectl get service blank-website --output wide
