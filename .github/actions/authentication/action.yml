@@ -22,6 +22,6 @@ runs:
       uses: azure/login@v2
       with:
         client-id: ${{ inputs.client_id }}
-        client-secret: ${{ inputs.client_secret }}
+        creds: '{"clientId":"${{ inputs.client_id }}","clientSecret":"${{ inputs.client_secret }}","subscriptionId":"${{ inputs.subscription_id }}","tenantId":"${{ inputs.tenant_id }}"}'
         tenant-id: ${{ inputs.tenant_id }}
         subscription-id: ${{ inputs.subscription_id }}
