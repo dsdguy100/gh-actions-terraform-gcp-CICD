@@ -16,8 +16,7 @@ spec:
     spec:
       containers:
         - name: blank-website
-          # Replace with the image URI pushed to Artifact Registry.
-          image: us-central1-docker.pkg.dev/PROJECT_ID/REPOSITORY/blank-website:latest
+          image: "accountregistryserviceasdkdkas12366.azurecr.io/blank-website:latest"
           ports:
             - name: http
               containerPort: 80
