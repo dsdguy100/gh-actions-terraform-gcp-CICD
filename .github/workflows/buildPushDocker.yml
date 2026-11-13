@@ -105,4 +105,4 @@ jobs:
             k8s/deployment.yaml | kubectl apply -f -
           kubectl rollout status deployment/blank-website --timeout=5m
           kubectl get pods --selector=app=blank-website
-          kubectl get service blank-website --output wide
+          timeout 1m kubectl get svc blank-website -w || [[ $? -eq 124 ]]
