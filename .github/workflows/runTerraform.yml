@@ -27,6 +27,7 @@ jobs:
       AKS_CLUSTER_NAME: ${{ vars.AKS_CLUSTER_NAME }}
       AKS_NODE_COUNT: ${{ vars.AKS_NODE_COUNT }}
       AKS_NODE_VM_SIZE: ${{ vars.AKS_NODE_VM_SIZE }}
+      ACR_NAME: ${{ vars.ACR_NAME }}
 
     steps:
       - name: Check out repository
@@ -35,7 +36,7 @@ jobs:
       - name: Check required configuration
         shell: bash
         run: |
-          for name in ARM_CLIENT_ID ARM_CLIENT_SECRET ARM_TENANT_ID ARM_SUBSCRIPTION_ID TF_STATE_RESOURCE_GROUP TF_STATE_STORAGE_ACCOUNT TF_STATE_CONTAINER TF_STATE_KEY AKS_RESOURCE_GROUP AKS_LOCATION AKS_CLUSTER_NAME AKS_NODE_COUNT AKS_NODE_VM_SIZE; do
+          for name in ARM_CLIENT_ID ARM_CLIENT_SECRET ARM_TENANT_ID ARM_SUBSCRIPTION_ID TF_STATE_RESOURCE_GROUP TF_STATE_STORAGE_ACCOUNT TF_STATE_CONTAINER TF_STATE_KEY AKS_RESOURCE_GROUP AKS_LOCATION AKS_CLUSTER_NAME AKS_NODE_COUNT AKS_NODE_VM_SIZE ACR_NAME; do
             if [[ -z "${!name}" ]]; then
               echo "::error::Set the $name repository variable."
               exit 1
@@ -83,7 +84,8 @@ jobs:
             -var="location=$AKS_LOCATION" \
             -var="cluster_name=$AKS_CLUSTER_NAME" \
             -var="node_count=$AKS_NODE_COUNT" \
-            -var="node_vm_size=$AKS_NODE_VM_SIZE"
+            -var="node_vm_size=$AKS_NODE_VM_SIZE" \
+            -var="acr_name=$ACR_NAME"
 
       - name: Apply Terraform changes
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
